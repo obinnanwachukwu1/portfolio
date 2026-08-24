@@ -1,8 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "portfolio",
-  "compatibility_date": "2025-09-02",
+  "compatibility_date": "2026-08-24",
+  "routes": [
+    {
+      "pattern": "obinnanwachukwu.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.obinnanwachukwu.com",
+      "custom_domain": true
+    }
+  ],
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
   }
 }
