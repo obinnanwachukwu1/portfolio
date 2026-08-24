@@ -1,0 +1,52 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/base.astro';
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<Base
+  title="projects · obinna's world"
+  description="software projects by obinna nwachukwu"
+>
+  <h1 class="sr-only">projects</h1>
+  <div class="cmd">ls ./projects</div>
+  <div class="rows">
+    {projects.map((project) => (
+      <div class="row">
+        <span class="n"><a href={`/projects/${project.id}/`}>{project.data.name}/</a></span>
+        <span class="d">{project.data.description}</span>
+      </div>
+    ))}
+  </div>
+</Base>
+
+<style>
+  .rows {
+    margin: 0 0 48px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 0 20px;
+    align-items: baseline;
+  }
+  .row .n a {
+    color: var(--link);
+    text-decoration: none;
+  }
+  .row .n a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .row .d {
+    color: var(--dim);
+  }
+  @media (max-width: 560px) {
+    .row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

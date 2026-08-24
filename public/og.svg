@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#000"/>
+  <g font-family="JetBrains Mono, ui-monospace, monospace">
+    <text x="150" y="235" fill="#4a4a4a" font-size="34">~ % whoami</text>
+    <text x="150" y="315" fill="#ededed" font-size="48">obinna's world</text>
+    <text x="150" y="415" fill="#4a4a4a" font-size="34">~ %</text>
+    <rect x="227" y="385" width="21" height="39" fill="#ededed"/>
+  </g>
+</svg>

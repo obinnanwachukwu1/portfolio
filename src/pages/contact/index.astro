@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/base.astro';
+---
+
+<Base
+  title="contact · obinna's world"
+  description="contact links for obinna nwachukwu"
+>
+  <h1 class="sr-only">contact</h1>
+  <div class="cmd">ls ./contact</div>
+  <nav class="links">
+    <a href="mailto:business@obinnanwachukwu.com">email</a>
+    <a href="https://github.com/obinnanwachukwu1" target="_blank" rel="noopener">github</a>
+    <a href="https://x.com/itsobinnasworld" target="_blank" rel="noopener">twitter</a>
+    <a href="https://www.linkedin.com/in/obinnanwachukwugt" target="_blank" rel="noopener">linkedin</a>
+  </nav>
+</Base>
+
+<style>
+  .links {
+    margin: 0 0 48px;
+  }
+  .links a {
+    display: block;
+    width: max-content;
+    color: var(--link);
+    text-decoration: none;
+  }
+  .links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

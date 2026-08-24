@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/base.astro';
+---
+
+<Base
+  title="404 · obinna's world"
+  description="page not found"
+  noindex
+>
+  <h1 class="sr-only">page not found</h1>
+  <div class="cmd">cat ./404</div>
+  <p class="message">cat: ./404: no such file or directory</p>
+</Base>
+
+<style>
+  .message {
+    margin: 0 0 48px;
+    color: var(--dim);
+  }
+</style>

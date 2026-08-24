@@ -1,0 +1,77 @@
+---
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/400-italic.css';
+import '@fontsource/jetbrains-mono/700.css';
+import '../styles/global.css';
+import Terminal from '../components/Terminal.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  type?: 'website' | 'article';
+  publishedTime?: string;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  type = 'website',
+  publishedTime,
+  noindex = false,
+} = Astro.props;
+
+const segments = Astro.url.pathname.replace(/\/$/, '').split('/').filter(Boolean);
+const upHref =
+  segments.length === 0
+    ? null
+    : segments.length === 1
+      ? '/'
+      : `/${segments.slice(0, -1).join('/')}/`;
+const isHome = segments.length === 0;
+const origin = Astro.site ?? Astro.url.origin;
+const canonical = new URL(Astro.url.pathname, origin);
+const socialImage = new URL('/og.png', origin);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#000000" />
+    <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title="obinna's world" href="/rss.xml" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+
+    <meta property="og:site_name" content="obinna's world" />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:alt" content="terminal prompt with obinna's world" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@itsobinnasworld" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:alt" content="terminal prompt with obinna's world" />
+  </head>
+  <body>
+    <main class="wrap">
+      {upHref && <div class="up"><a href={upHref}>../</a></div>}
+      <slot />
+      <Terminal />
+      <footer>© 2026 {isHome ? "obinna's world" : <a href="/">obinna's world</a>}</footer>
+    </main>
+  </body>
+</html>

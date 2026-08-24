@@ -1,0 +1,647 @@
+---
+import { getCollection } from 'astro:content';
+import colophon from '../content/colophon.md?raw';
+
+type DirectoryEntry = {
+  name: string;
+  date?: string;
+  href?: string;
+};
+
+type TerminalFile =
+  | { type: 'page'; url: string }
+  | { type: 'text'; content: string };
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+const posts = (await getCollection('writing')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+
+const directories: Record<string, DirectoryEntry[]> = {
+  '': [
+    { name: 'readme.md' },
+    { name: 'colophon.md' },
+    { name: 'projects/', href: '/projects/' },
+    { name: 'writing/', href: '/writing/' },
+    { name: 'contact/', href: '/contact/' },
+  ],
+  projects: projects.map((project) => ({
+    name: `${project.id}/`,
+    href: `/projects/${project.id}/`,
+  })),
+  writing: posts.map((post) => ({
+    name: `${post.id}.md`,
+    date: post.data.date.toISOString().slice(0, 10),
+    href: `/writing/${post.id}/`,
+  })),
+  contact: [
+    { name: 'email', href: 'mailto:business@obinnanwachukwu.com' },
+    { name: 'github', href: 'https://github.com/obinnanwachukwu1' },
+    { name: 'twitter', href: 'https://x.com/itsobinnasworld' },
+    { name: 'linkedin', href: 'https://www.linkedin.com/in/obinnanwachukwugt' },
+  ],
+};
+
+const files: Record<string, TerminalFile> = {
+  'readme.md': { type: 'page', url: '/' },
+  'colophon.md': { type: 'text', content: colophon.trim() },
+  'contact/email': { type: 'text', content: 'business@obinnanwachukwu.com' },
+  'contact/github': { type: 'text', content: 'https://github.com/obinnanwachukwu1' },
+  'contact/twitter': { type: 'text', content: 'https://x.com/itsobinnasworld' },
+  'contact/linkedin': {
+    type: 'text',
+    content: 'https://www.linkedin.com/in/obinnanwachukwugt',
+  },
+};
+
+for (const project of projects) {
+  directories[`projects/${project.id}`] = [
+    { name: 'readme.md', href: `/projects/${project.id}/` },
+  ];
+  files[`projects/${project.id}/readme.md`] = {
+    type: 'page',
+    url: `/projects/${project.id}/`,
+  };
+}
+
+for (const post of posts) {
+  files[`writing/${post.id}.md`] = {
+    type: 'page',
+    url: `/writing/${post.id}/`,
+  };
+}
+
+const manifest = JSON.stringify({ directories, files }).replaceAll('<', '\\u003c');
+---
+
+<section class="terminal" data-terminal>
+  <script type="application/json" data-terminal-manifest set:html={manifest}></script>
+  <div class="terminal-history" data-terminal-history></div>
+  <p class="sr-only" aria-live="polite" data-terminal-status></p>
+
+  <button class="terminal-open" type="button" aria-label="open terminal" data-terminal-open>
+    <span aria-hidden="true">~ %</span><span class="cursor" aria-hidden="true"></span>
+  </button>
+
+  <form class="terminal-form" data-terminal-form hidden autocomplete="off">
+    <span aria-hidden="true">~ %</span>
+    <span class="terminal-input-shell" data-terminal-input-shell>
+      <input
+        type="text"
+        aria-label="terminal command"
+        autocapitalize="none"
+        autocomplete="off"
+        spellcheck="false"
+        data-terminal-input
+      />
+      <span class="cursor terminal-input-cursor" aria-hidden="true"></span>
+    </span>
+  </form>
+</section>
+
+<script>
+  type DirectoryEntry = {
+    name: string;
+    date?: string;
+    href?: string;
+  };
+
+  type TerminalFile =
+    | { type: 'page'; url: string }
+    | { type: 'text'; content: string };
+
+  type Manifest = {
+    directories: Record<string, DirectoryEntry[]>;
+    files: Record<string, TerminalFile>;
+  };
+
+  const normalizePath = (value: string) => {
+    const normalized = value
+      .trim()
+      .toLowerCase()
+      .replace(/^(?:\.\/|\/)+/, '')
+      .replace(/\/{2,}/g, '/')
+      .replace(/\/$/, '');
+
+    if (normalized === '.') return '';
+    if (normalized.split('/').includes('..')) return null;
+    return normalized;
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-terminal]').forEach((terminal) => {
+    if (terminal.dataset.ready === 'true') return;
+    terminal.dataset.ready = 'true';
+
+    const manifestNode = terminal.querySelector<HTMLScriptElement>('[data-terminal-manifest]');
+    const openButton = terminal.querySelector<HTMLButtonElement>('[data-terminal-open]');
+    const form = terminal.querySelector<HTMLFormElement>('[data-terminal-form]');
+    const inputShell = terminal.querySelector<HTMLElement>('[data-terminal-input-shell]');
+    const input = terminal.querySelector<HTMLInputElement>('[data-terminal-input]');
+    const history = terminal.querySelector<HTMLElement>('[data-terminal-history]');
+    const status = terminal.querySelector<HTMLElement>('[data-terminal-status]');
+
+    if (!manifestNode || !openButton || !form || !inputShell || !input || !history || !status) return;
+
+    const manifest = JSON.parse(manifestNode.textContent || '{}') as Manifest;
+    const measureContext = document.createElement('canvas').getContext('2d');
+    let blinkTimer: number | undefined;
+
+    const syncCursor = () => {
+      const style = getComputedStyle(input);
+      const selectionIndex = input.selectionDirection === 'backward'
+        ? input.selectionStart
+        : input.selectionEnd;
+      const caretIndex = selectionIndex ?? input.value.length;
+      let measuredWidth = caretIndex * parseFloat(style.fontSize) * 0.62;
+
+      if (measureContext) {
+        measureContext.font = [
+          style.fontStyle,
+          style.fontWeight,
+          style.fontSize,
+          style.fontFamily,
+        ].join(' ');
+        measuredWidth = measureContext.measureText(input.value.slice(0, caretIndex)).width;
+      }
+
+      const cursorWidth = parseFloat(style.fontSize) * 0.62;
+      const maxOffset = Math.max(0, input.clientWidth - cursorWidth);
+      const offset = Math.min(maxOffset, Math.max(0, measuredWidth - input.scrollLeft));
+      inputShell.style.setProperty('--terminal-caret-x', `${offset}px`);
+    };
+
+    const queueCursorSync = () => requestAnimationFrame(syncCursor);
+    const trackCursorActivity = () => {
+      form.classList.add('terminal-cursor-active');
+      window.clearTimeout(blinkTimer);
+      blinkTimer = window.setTimeout(() => {
+        form.classList.remove('terminal-cursor-active');
+      }, 500);
+      queueCursorSync();
+    };
+
+    const activate = () => {
+      openButton.hidden = true;
+      form.hidden = false;
+      input.focus();
+      queueCursorSync();
+    };
+
+    const appendCommand = (command: string) => {
+      const row = document.createElement('div');
+      row.className = 'terminal-command';
+
+      const prompt = document.createElement('span');
+      prompt.className = 'terminal-command-prompt';
+      prompt.textContent = '~ %';
+
+      const entered = document.createElement('span');
+      entered.className = 'terminal-entered';
+      entered.textContent = command;
+
+      row.append(prompt, entered);
+      history.append(row);
+    };
+
+    const createResult = () => {
+      const result = document.createElement('div');
+      result.className = 'terminal-result';
+      history.append(result);
+      return result;
+    };
+
+    const renderText = (result: HTMLElement, text: string, error = false) => {
+      const output = document.createElement('pre');
+      output.className = error ? 'terminal-text terminal-error' : 'terminal-text';
+      output.textContent = text;
+      result.replaceChildren(output);
+    };
+
+    const renderList = (
+      result: HTMLElement,
+      entries: DirectoryEntry[],
+      longFormat: boolean,
+    ) => {
+      const list = document.createElement('div');
+      list.className = 'terminal-list';
+
+      for (const entry of entries) {
+        const row = document.createElement('div');
+        row.className = 'terminal-list-row';
+
+        if (longFormat && entry.date) {
+          const date = document.createElement('span');
+          date.className = 'terminal-date';
+          date.textContent = entry.date;
+          row.append(date);
+        }
+
+        const name = entry.href
+          ? document.createElement('a')
+          : document.createElement('span');
+        name.className = entry.name.endsWith('/') ? 'terminal-directory' : '';
+        name.textContent = entry.name;
+
+        if (entry.href && name instanceof HTMLAnchorElement) {
+          name.href = entry.href;
+          if (entry.href.startsWith('http')) {
+            name.target = '_blank';
+            name.rel = 'noopener';
+          }
+        }
+
+        row.append(name);
+        list.append(row);
+      }
+
+      result.replaceChildren(list);
+    };
+
+    const finish = (_result: HTMLElement, message: string) => {
+      status.textContent = message;
+      input.disabled = false;
+      input.focus({ preventScroll: true });
+      queueCursorSync();
+      requestAnimationFrame(() => form.scrollIntoView({ block: 'end' }));
+    };
+
+    const runLs = (args: string[], result: HTMLElement) => {
+      const flags = args.filter((arg) => arg.startsWith('-'));
+      const paths = args.filter((arg) => !arg.startsWith('-'));
+
+      if (paths.length > 1) {
+        renderText(result, 'usage: ls [directory]', true);
+        finish(result, 'ls failed');
+        return;
+      }
+
+      const directoryGlob = paths[0] === '*/' || paths[0] === './*/';
+      const directoryOnly = flags.some((flag) => flag.includes('d'));
+      if (directoryGlob && directoryOnly) {
+        const entries = manifest.directories[''].filter((entry) => entry.name.endsWith('/'));
+        renderList(result, entries, flags.some((flag) => flag.includes('l')));
+        finish(result, 'listed root directories');
+        return;
+      }
+
+      const path = normalizePath(paths[0] || '');
+      if (path === null) {
+        renderText(result, 'ls: parent paths are not available', true);
+        finish(result, 'ls failed');
+        return;
+      }
+
+      const entries = manifest.directories[path];
+      if (entries) {
+        const longFormat = flags.some((flag) => flag.includes('l'));
+        renderList(result, entries, longFormat);
+        finish(result, `listed ${path || 'root'}`);
+        return;
+      }
+
+      if (manifest.files[path]) {
+        renderList(result, [{ name: path.split('/').at(-1) || path }], false);
+        finish(result, `listed ${path}`);
+        return;
+      }
+
+      renderText(result, `ls: ${paths[0] || ''}: no such file or directory`, true);
+      finish(result, 'ls failed');
+    };
+
+    const runCat = async (args: string[], result: HTMLElement) => {
+      if (args.length !== 1) {
+        renderText(result, 'usage: cat <file>', true);
+        finish(result, 'cat failed');
+        return;
+      }
+
+      const path = normalizePath(args[0]);
+      if (path === null) {
+        renderText(result, 'cat: parent paths are not available', true);
+        finish(result, 'cat failed');
+        return;
+      }
+
+      if (manifest.directories[path]) {
+        renderText(result, `cat: ${args[0]}: is a directory`, true);
+        finish(result, 'cat failed');
+        return;
+      }
+
+      const file = manifest.files[path];
+      if (!file) {
+        renderText(result, `cat: ${args[0]}: no such file`, true);
+        finish(result, 'cat failed');
+        return;
+      }
+
+      if (file.type === 'text') {
+        renderText(result, file.content);
+        finish(result, `read ${path}`);
+        return;
+      }
+
+      input.disabled = true;
+      status.textContent = `reading ${path}`;
+
+      try {
+        const response = await fetch(file.url, { headers: { Accept: 'text/html' } });
+        if (!response.ok) throw new Error(`request failed with ${response.status}`);
+
+        const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const documentNode = parsed.querySelector<HTMLElement>('[data-terminal-document]');
+        if (!documentNode) throw new Error('document content was not found');
+
+        const clone = document.importNode(documentNode, true);
+        clone.removeAttribute('data-terminal-document');
+        clone.classList.add('terminal-document');
+        result.replaceChildren(clone);
+        finish(result, `read ${path}`);
+      } catch {
+        renderText(result, `cat: ${args[0]}: could not read file`, true);
+        finish(result, 'cat failed');
+      }
+    };
+
+    const runWhoami = (args: string[], result: HTMLElement) => {
+      if (args.length > 0) {
+        renderText(result, 'usage: whoami', true);
+        finish(result, 'whoami failed');
+        return;
+      }
+
+      renderText(result, 'obinna');
+      finish(result, 'identified user');
+    };
+
+    openButton.addEventListener('click', activate);
+    input.addEventListener('input', trackCursorActivity);
+    input.addEventListener('keydown', trackCursorActivity);
+    input.addEventListener('keyup', queueCursorSync);
+    input.addEventListener('click', trackCursorActivity);
+    input.addEventListener('select', trackCursorActivity);
+    input.addEventListener('scroll', queueCursorSync);
+    input.addEventListener('focus', queueCursorSync);
+    window.addEventListener('resize', queueCursorSync);
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const raw = input.value.trim();
+      if (!raw || input.disabled) return;
+
+      input.value = '';
+      input.setSelectionRange(0, 0);
+      queueCursorSync();
+      appendCommand(raw);
+      const result = createResult();
+      const [command = '', ...args] = raw.split(/\s+/);
+
+      if (command.toLowerCase() === 'ls') {
+        runLs(args, result);
+      } else if (command.toLowerCase() === 'cat') {
+        await runCat(args, result);
+      } else if (command.toLowerCase() === 'whoami') {
+        runWhoami(args, result);
+      } else {
+        renderText(result, `${command}: command not found`, true);
+        finish(result, `${command} was not found`);
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  .terminal {
+    margin: 40px 0;
+  }
+
+  .terminal-open,
+  .terminal-form {
+    width: 100%;
+    min-height: 1.75em;
+    align-items: baseline;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    font: inherit;
+    text-align: left;
+  }
+
+  .terminal-open {
+    display: flex;
+    cursor: text;
+  }
+
+  .terminal-open[hidden],
+  .terminal-form[hidden] {
+    display: none;
+  }
+
+  .terminal-open:focus-visible {
+    outline: 1px solid var(--faint);
+    outline-offset: 4px;
+  }
+
+  .terminal-form {
+    display: flex;
+  }
+
+  .terminal-form > span:first-child {
+    margin-right: 1ch;
+  }
+
+  .terminal-input-shell {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 1.75em;
+  }
+
+  .terminal-form input {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--fg);
+    caret-color: transparent;
+    font: inherit;
+  }
+
+  .terminal-input-cursor {
+    position: absolute;
+    top: 0.05em;
+    left: var(--terminal-caret-x, 0px);
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .terminal-form:focus-within.terminal-cursor-active .terminal-input-cursor {
+    animation: none;
+    opacity: 1;
+  }
+
+  .terminal-form:not(:focus-within) .terminal-input-cursor {
+    animation: none;
+    opacity: 0;
+  }
+
+  .terminal-history:not(:empty) {
+    margin-bottom: 4px;
+  }
+
+  .terminal-command {
+    color: var(--faint);
+  }
+
+  .terminal-command-prompt {
+    margin-right: 1ch;
+  }
+
+  .terminal-entered {
+    color: var(--faint);
+  }
+
+  .terminal-result {
+    margin: 0 0 24px;
+  }
+
+  .terminal-text {
+    margin: 0;
+    color: var(--fg);
+    font: inherit;
+    white-space: pre-wrap;
+  }
+
+  .terminal-error,
+  .terminal-date {
+    color: var(--dim);
+  }
+
+  .terminal-list-row {
+    display: flex;
+    gap: 24px;
+  }
+
+  .terminal-date {
+    flex: 0 0 10ch;
+  }
+
+  .terminal-directory {
+    color: var(--link);
+  }
+
+  .terminal-document.block,
+  .terminal-document .readme,
+  .terminal-document .kv {
+    margin-bottom: 32px;
+  }
+
+  .terminal-document.block p,
+  .terminal-document .readme p,
+  .terminal-document .post p {
+    margin: 0 0 16px;
+  }
+
+  .terminal-document .summary {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+  }
+
+  .terminal-document .summary li {
+    position: relative;
+    padding-left: 1.7em;
+  }
+
+  .terminal-document .summary li::before {
+    content: '·';
+    position: absolute;
+    left: 0.55em;
+    color: var(--faint);
+  }
+
+  .terminal-list-row a,
+  .terminal-document .kv a,
+  .terminal-document.post a {
+    color: var(--link);
+    text-decoration: none;
+  }
+
+  .terminal-list-row a:hover,
+  .terminal-document .kv a:hover,
+  .terminal-document.post a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .terminal-document.block .summary a {
+    color: var(--fg);
+    text-decoration: underline;
+    text-decoration-color: var(--faint);
+    text-underline-offset: 3px;
+  }
+
+  .terminal-document.block .summary a:hover {
+    color: var(--link);
+    text-decoration-color: var(--link);
+  }
+
+  .terminal-document .readme h1 {
+    margin: 0 0 16px;
+    font-size: 15px;
+  }
+
+  .terminal-document .readme .tag,
+  .terminal-document .readme .stats {
+    color: var(--dim);
+    font-weight: 400;
+  }
+
+  .terminal-document .kv {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 0 20px;
+  }
+
+  .terminal-document .kv .k,
+  .terminal-document .post .meta {
+    color: var(--faint);
+  }
+
+  .terminal-document.post {
+    line-height: 1.8;
+  }
+
+  .terminal-document.post h1 {
+    margin: 0 0 24px;
+    font-size: 19px;
+    line-height: 1.4;
+  }
+
+  .terminal-document.post h2,
+  .terminal-document.post h3 {
+    margin: 40px 0 16px;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .terminal-document.post .meta {
+    margin: 0 0 32px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 560px) {
+    .terminal-form input {
+      font-size: 16px;
+    }
+  }
+</style>

@@ -1,0 +1,94 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/base.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+const { name, description, stats, links, stack } = project.data;
+---
+
+<Base
+  title={`${name} · obinna's world`}
+  description={description}
+>
+  <div class="cmd">cat ./projects/{name}/readme.md</div>
+  <div data-terminal-document>
+    <div class="readme">
+      <h1>{name} <span class="tag">· {description}</span></h1>
+      <Content />
+      {stats.length > 0 && (
+        <p class="stats">
+          {stats.map((line, i) => (
+            <>
+              {i > 0 && <br />}
+              {line}
+            </>
+          ))}
+        </p>
+      )}
+    </div>
+
+    <div class="kv">
+      {links.map((link) => (
+        <>
+          <span class="k">{link.key}</span>
+          <span>
+            <a
+              href={link.url}
+              target={link.url.startsWith('http') ? '_blank' : undefined}
+              rel={link.url.startsWith('http') ? 'noopener' : undefined}
+            >{link.label}</a>
+          </span>
+        </>
+      ))}
+      {stack.length > 0 && (<><span class="k">stack</span><span>{stack.join(' · ')}</span></>)}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .readme {
+    margin: 0 0 32px;
+  }
+  .readme h1 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 16px;
+  }
+  .readme h1 .tag {
+    font-weight: 400;
+    color: var(--dim);
+  }
+  .readme :global(p) {
+    margin: 0 0 16px;
+  }
+  .readme .stats {
+    color: var(--dim);
+    margin: 0 0 16px;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 0 20px;
+    margin: 0 0 32px;
+  }
+  .kv .k {
+    color: var(--faint);
+  }
+  .kv a {
+    color: var(--link);
+    text-decoration: none;
+  }
+  .kv a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

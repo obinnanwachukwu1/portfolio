@@ -1,0 +1,21 @@
+---
+name: codexhook
+description: send webhooks into running codex tasks
+order: 4
+stats:
+  - macos · windows · linux
+links:
+  - key: package
+    label: codexhook
+    url: https://www.npmjs.com/package/codexhook
+  - key: code
+    label: github.com/obinnanwachukwu1/codexhook
+    url: https://github.com/obinnanwachukwu1/codexhook
+stack:
+  - typescript
+  - node.js
+  - codex app server
+  - background services
+---
+
+codexhook gives any codex task a webhook url. ci jobs, deploys, scripts, and monitors can post to that url and continue the task that created it. hooks can expire, cap deliveries, queue the next turn, or steer the current one.

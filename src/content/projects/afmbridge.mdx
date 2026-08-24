@@ -1,0 +1,19 @@
+---
+name: afmbridge
+description: openai-compatible api for apple's on-device model
+order: 5
+stats:
+  - streaming · tool calling · structured outputs
+  - http · unix sockets
+links:
+  - key: code
+    label: github.com/obinnanwachukwu1/afmbridge
+    url: https://github.com/obinnanwachukwu1/afmbridge
+stack:
+  - swift
+  - foundationmodels
+  - swiftnio
+  - server-sent events
+---
+
+afmbridge puts an openai-compatible chat completions api in front of apple's on-device foundation model. it supports streaming, tool calls, json schema output, cancellation, and a serial request queue.

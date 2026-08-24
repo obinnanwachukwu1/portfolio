@@ -1,0 +1,86 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/base.astro';
+
+const posts = (await getCollection('writing')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+const latest = posts[0];
+---
+
+<Base
+  title="obinna's world"
+  description="software and writing by obinna nwachukwu"
+>
+  <div class="cmd">whoami</div>
+  <h1 class="block identity">obinna</h1>
+
+  <div class="cmd">cat readme.md</div>
+  <div class="block" data-terminal-document>
+    <p>i build things and sometimes write stuff.</p>
+    <ul class="summary">
+      <li>currently building <a href="/projects/tracecode/">tracecode</a> and <a href="/projects/tracecode-harness/">tracecode harness</a>, the browser runtime that powers it.</li>
+      <li>other work: <a href="/projects/computer-use-capture/">computer-use-capture</a>, <a href="/projects/codexhook/">codexhook</a>, <a href="/projects/afmbridge/">afmbridge</a>, <a href="/projects/harness2/">harness2</a>, and <a href="/projects/whiteboard/">whiteboard</a>.</li>
+      <li>last wrote: <a href={`/writing/${latest.id}/`}>{latest.data.title}</a>.</li>
+    </ul>
+  </div>
+
+  <div class="cmd">ls -d */</div>
+  <nav class="nav">
+    <a href="/projects/">projects/</a>
+    <a href="/writing/">writing/</a>
+    <a href="/contact/">contact/</a>
+  </nav>
+</Base>
+
+<style>
+  .block {
+    margin: 0 0 32px;
+  }
+  .identity {
+    font-size: inherit;
+    font-weight: 400;
+  }
+  .summary {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    color: var(--fg);
+  }
+  .summary li {
+    position: relative;
+    padding-left: 1.7em;
+  }
+  .summary li::before {
+    content: '·';
+    position: absolute;
+    left: 0.55em;
+    color: var(--faint);
+  }
+  .summary a {
+    color: var(--fg);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--faint);
+  }
+  .summary a:hover {
+    color: var(--link);
+    text-decoration-color: var(--link);
+  }
+  .nav {
+    margin: 0 0 48px;
+  }
+  .nav a {
+    display: block;
+    width: max-content;
+    color: var(--link);
+    text-decoration: none;
+  }
+  .nav a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .block p {
+    margin: 0;
+  }
+</style>
