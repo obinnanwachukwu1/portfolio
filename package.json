@@ -10,11 +10,11 @@
     "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.3.13",
+    "@astrojs/mdx": "^7.0.8",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "astro": "^5.18.2"
+    "astro": "^7.2.9"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
